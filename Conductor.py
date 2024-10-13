@@ -14,6 +14,7 @@ class Conductor():
         self.isOn = False
         self.pauseIndex = 0 # For pausing function, want to know at what note were we paused
         print("----- conductor successfully instantiated------")
+        self.isPlaying = False
     
     def turnOn(self):
         self.isOn = True
@@ -22,6 +23,9 @@ class Conductor():
     def turnOff(self):
         self.isOn = False
         print(" ~~~~~~ from conductor: turnOff() ~~~~~")
+    
+    def startPlay(self):
+        self.isPlaying = True
 
     def connect(self):
         self.midi.connect_up()
@@ -29,8 +33,9 @@ class Conductor():
     def disconect(self):
         self.midi.disconnect()
         
-    async def testTune(self):
-        print(" ~~~~~~ from conductor: testTune() ~~~~~")
+    def playTune(self):
+        print(" ~~~~~~ from conductor: playTune() ~~~~~")
+        # ----- MIDI SETUP ------
         NoteOn = 0x90
         NoteOff = 0x80
         StopNotes = 123
@@ -52,9 +57,42 @@ class Conductor():
         c =  cmd | channel     
         payload = bytes([tsM,tsL,c,note,velocity['f']])
         
+        # ------- Playing the tune -----
+        for i in range(5):
+            if self.isOn:
+                self.midi.send(payload)
+                time.sleep(5)
+            else:
+                self.pauseIndex = i
+
+        
+    async def handler(self):
+        print(" ~~~~~~ from conductor: handler() ~~~~~")
+        
+        # Loop runs forever, will check to see if got on message every 1/100 second
         while True:
-            for i in range(5):
-                if self.isOn:
-                    self.midi.send(payload)
-                    asyncio.sleep(5)
+            if self.isOn and not self.isPlaying:
+                self.isPlaying = True
+                self.playTune()
+                self.isPlaying = False
             await asyncio.sleep(0.01)
+        
+        
+        
+        # TODO: need to find a way to make this code run through fully before starting over again
+        # CURRENT ERRORS: Will read start MQTT fine, but has errors with stop and bye
+        #while True:
+        #    if not self.isPlaying:
+         #       self.isPlaying = True
+                
+          #      for i in range(5):
+           #         if self.isOn:
+            #            self.midi.send(payload)
+             #           asyncio.sleep(5)
+              #      else:
+                        # if it's been turned off, log where in the song we paused
+               #         self.pauseIndex = i
+                        
+                #self.isPlaying = False
+            #await asyncio.sleep(0.01)
+
