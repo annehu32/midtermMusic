@@ -43,7 +43,7 @@ def callback(topic, msg):
         conductor.turnOn()
         print("CALLBACK - STARTING")
     elif val == 'stop':
-        conductor.turn.Off()
+        conductor.turnOff()
         print("CALLBACK - STOPPING")
     elif val == 'bye':
         conductor.disconnect()
@@ -93,7 +93,6 @@ print(f'Subscribed to {topic_sub}')
 # ----- RUNNING ASYNC FUNCTIONS -----
 loop = asyncio.get_event_loop()
 loop.create_task(mqtt_handler(client))
-loop.create_task(conductor.testTune())
+loop.create_task(conductor.handler())
 #loop.create_task(main())
 loop.run_forever()
-
