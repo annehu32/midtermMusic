@@ -53,46 +53,73 @@ class Conductor():
         timestamp_ms = time.ticks_ms()
         tsM = (timestamp_ms >> 7 & 0b111111) | 0x80
         tsL =  0x80 | (timestamp_ms & 0b1111111)
+        
+        c =  cmd | channel     
+        payload = bytes([tsM,tsL,c,note,velocity['f']])
+
+        
+        # Defining the tune!!!!
+        notesRightHand = [
+            (74, 64),
+            (79,64)
+        ]
+        
+        notesLeftHand = [
+            (38, 64),
+            (36, 64),
+            (38, 32),
+            (36, 32)
+        ]
+        
+        
+        # ------- Playing the tune -----
+        for note, duration in notesLeftHand:
+            # note on
+            payload = bytes([tsM,tsL,c,note,velocity['f']])
+            self.midi.send(payload)
+            time.sleep(duration/1000)
+            
+        
+    async def handler(self):
+        print(" ~~~~~~ from conductor: handler() ~~~~~")
+        # ----- MIDI SETUP ------
+        NoteOn = 0x90
+        NoteOff = 0x80
+        StopNotes = 123
+        SetInstroment = 0xC0
+        Reset = 0xFF
+
+        velocity = {'off':0, 'pppp':8,'ppp':20,'pp':31,'p':42,'mp':53,
+            'mf':64,'f':80,'ff':96,'fff':112,'ffff':127}
+            
+        channel = 0
+        note = 55
+        cmd = NoteOn
+
+        channel = 0x0F & channel
+        timestamp_ms = time.ticks_ms()
+        tsM = (timestamp_ms >> 7 & 0b111111) | 0x80
+        tsL =  0x80 | (timestamp_ms & 0b1111111)
 
         c =  cmd | channel     
         payload = bytes([tsM,tsL,c,note,velocity['f']])
         
-        # ------- Playing the tune -----
-        for i in range(5):
-            if self.isOn:
-                self.midi.send(payload)
-                time.sleep(5)
-            else:
-                self.pauseIndex = i
-
-        
-    async def handler(self):
-        print(" ~~~~~~ from conductor: handler() ~~~~~")
-        
         # Loop runs forever, will check to see if got on message every 1/100 second
         while True:
+            
             if self.isOn and not self.isPlaying:
                 self.isPlaying = True
-                self.playTune()
-                self.isPlaying = False
-            await asyncio.sleep(0.01)
-        
-        
-        
-        # TODO: need to find a way to make this code run through fully before starting over again
-        # CURRENT ERRORS: Will read start MQTT fine, but has errors with stop and bye
-        #while True:
-        #    if not self.isPlaying:
-         #       self.isPlaying = True
+                print("starting tune")
                 
-          #      for i in range(5):
-           #         if self.isOn:
-            #            self.midi.send(payload)
-             #           asyncio.sleep(5)
-              #      else:
-                        # if it's been turned off, log where in the song we paused
-               #         self.pauseIndex = i
-                        
-                #self.isPlaying = False
-            #await asyncio.sleep(0.01)
-
+                # ------- Playing the tune -----
+                for i in range(5):
+                    if self.isOn:
+                        self.midi.send(payload)
+                        await asyncio.sleep(5)
+                    else:
+                        self.pauseIndex = i
+                        break
+                self.isPlaying = False
+                print("ending tune")
+                
+            await asyncio.sleep(0.01)
