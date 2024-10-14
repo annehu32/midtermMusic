@@ -61,24 +61,6 @@ async def mqtt_handler(client):
             print('Wifi disconnected, trying to connect...')
             connect_wifi()
         await asyncio.sleep(0.01)
-
-# ------ MAIN CODE ------
-async def main():
-    global isOn
-    global midi
-    
-    
-    
-    while True:
-        if isOn:
-            print("----- IN NOTE LOOP ----- ")
-            for i in range(5):
-                midi.send(payload)
-            asyncio.sleep(5)
-        else:
-            print("--- Waiting for start command ---")
-        await asyncio.sleep(0.01)
-        
         
 
 # ------ CONNECTING UP MQTT -------
@@ -94,5 +76,4 @@ print(f'Subscribed to {topic_sub}')
 loop = asyncio.get_event_loop()
 loop.create_task(mqtt_handler(client))
 loop.create_task(conductor.handler())
-#loop.create_task(main())
 loop.run_forever()
