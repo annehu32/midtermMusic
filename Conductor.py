@@ -103,23 +103,62 @@ class Conductor():
 
         c =  cmd | channel     
         payload = bytes([tsM,tsL,c,note,velocity['f']])
+    
+        # Notes:
+        # 64 = quarter note
+        # 32 = eight note
+        # am working in Octave 2 and Octave 3
+        melody = [
+            (48, 32),
+            (50, 32),
+            (52, 64),
+            (52, 32),
+            (50, 32),
+            (48, 64),
+            (50, 96),
+            (48, 160),
+            (48, 32),
+            (50, 32),
+            (52, 64),
+            (52, 384),
+            (79, 64),
+            (79, 64),
+            (79, 64),
+          
+        ]
         
-        # Loop runs forever, will check to see if got on message every 1/100 second
+        notesLeftHand = [
+            (38, 64),
+            (36, 64),
+            (38, 32),
+            (36, 32)
+        ]
+        
         while True:
-            
             if self.isOn and not self.isPlaying:
                 self.isPlaying = True
                 print("starting tune")
                 
-                # ------- Playing the tune -----
-                for i in range(5):
+                # start notes
+                for note in melody:
+    
                     if self.isOn:
+                        payload = bytes([tsM,tsL,c,note[0],velocity['f']])
                         self.midi.send(payload)
-                        await asyncio.sleep(5)
+                        await asyncio.sleep(note[1]/100)
+                        
+                        payloadOff = bytes([tsM,tsL,c,note[0],0])
+                        self.midi.send(payloadOff)
                     else:
-                        self.pauseIndex = i
+                        self.pauseIndex = note
                         break
                 self.isPlaying = False
                 print("ending tune")
                 
+                    
+                    
             await asyncio.sleep(0.01)
+            
+        
+        
+
