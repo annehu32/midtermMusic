@@ -138,39 +138,28 @@ class Conductor():
             (79, 64),
             (79, 64)
         ]
-        
-        notesLeftHand = [
-            (38, 64),
-            (36, 64),
-            (38, 32),
-            (36, 32)
-        ]
-        
+
+# next step: incorporate a pause with a flag somehow
         while True:
-            if self.isOn and not self.isPlaying:
-                self.isPlaying = True
-                print("starting tune")
+            # start notes
+            for i in range(0, len(melody)):
+                print("----- Note index: "+str(i)+" --------")
+                note = melody[i]
                 
-                # start notes
-                for note in melody:
-    
-                    if self.isOn:
-                        payload = bytes([tsM,tsL,c,note[0],velocity['f']])
-                        self.midi.send(payload)
-                        await asyncio.sleep(note[1]/100)
-                        
-                        payloadOff = bytes([tsM,tsL,c,note[0],0])
-                        self.midi.send(payloadOff)
-                    else:
-                        self.pauseIndex = note
-                        break
-                self.isPlaying = False
-                print("ending tune")
+                while not self.isOn:
+                    print(" ------- Waiting for go on note #: "+str(i)+" --------")
+                    await asyncio.sleep(0.01)
                 
+                # When isOn, will play the note
+                payload = bytes([tsM,tsL,c,note[0],velocity['f']])
+                self.midi.send(payload)
+                
+                await asyncio.sleep(note[1]/100)
+                
+                payloadOff = bytes([tsM,tsL,c,note[0],0])
+                self.midi.send(payloadOff)
                     
-                    
+
             await asyncio.sleep(0.01)
             
         
-        
-
