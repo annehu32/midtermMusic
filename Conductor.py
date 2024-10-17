@@ -32,6 +32,9 @@ class Conductor():
         
     def disconect(self):
         self.midi.disconnect()
+    
+    def checkState(self):
+        return self.isOn
         
     def playTune(self):
         print(" ~~~~~~ from conductor: playTune() ~~~~~")
@@ -147,7 +150,7 @@ class Conductor():
                 note = melody[i]
                 
                 while not self.isOn:
-                    print(" ------- Waiting for go on note #: "+str(i)+" --------")
+                    #print(" ------- Waiting for go on note #: "+str(i)+" --------")
                     await asyncio.sleep(0.01)
                 
                 # When isOn, will play the note
@@ -161,5 +164,4 @@ class Conductor():
                     
 
             await asyncio.sleep(0.01)
-            
-        
+    
