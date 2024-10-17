@@ -3,7 +3,8 @@ import network
 import uasyncio as asyncio
 from BLE_CEEO import Yell
 from mqtt import MQTTClient
-from machine import Pin, PWM # not in use yet...
+from machine import ADC, Pin, PWM # PWM not in use yet...
+
 from secrets import mysecret, key
 
 # ------ CREATING A CONDUCTOR ------
@@ -45,6 +46,7 @@ def callback(topic, msg):
     elif val == 'stop':
         conductor.turnOff()
         print("CALLBACK - STOPPING")
+        
     elif val == 'bye':
         conductor.disconnect()
         print("CALLBACK - DISCONNECTING")
@@ -61,7 +63,24 @@ async def mqtt_handler(client):
             print('Wifi disconnected, trying to connect...')
             connect_wifi()
         await asyncio.sleep(0.01)
+
+# ---- PHOTORESISTOR PAUSE FUNCTION ------
+lightSensor = Pin('GPIO26')
+
+async def lightPauseButton(pin):
+    photoRes = ADC(pin)
+    
+    while True:
+        light = photoRes.read_u16()
+        light = round(light/65535*100,2)
         
+        if light < 10:
+            print("light covered: " + str(light) + "%")
+            conductor.turnOff()
+        if light > 10 and not conductor.checkState():
+            conductor.turnOn()
+        await asyncio.sleep(0.01)
+    
 
 # ------ CONNECTING UP MQTT -------
 # After midi bluetooth keyboard is set up, start handling MQTT 
@@ -76,4 +95,5 @@ print(f'Subscribed to {topic_sub}')
 loop = asyncio.get_event_loop()
 loop.create_task(mqtt_handler(client))
 loop.create_task(conductor.handler())
+loop.create_task(lightPauseButton(lightSensor))
 loop.run_forever()
