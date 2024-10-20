@@ -3,24 +3,17 @@ import network
 import uasyncio as asyncio
 from BLE_CEEO import Yell
 from mqtt import MQTTClient
-from machine import ADC, Pin, PWM # PWM not in use yet...
-
-from secrets import mysecret, key
-
-# ------ CREATING A CONDUCTOR ------
-# Pico should connect before handilng MQTT requests because this requires manual input from the Mac user
-midi = Yell('frog', verbose = True, type = 'midi')
+from machine import ADC, Pin
 
 from Conductor import Conductor # Class to control the tune
+from secrets import mysecret, key
+
+# ------ CREATING AND CONNECTING MIDI CONDUCTOR ------
+midi = Yell('frog', verbose = True, type = 'midi')
 conductor = Conductor(midi)
 conductor.connect()
 
 # ------ MQTT SET UP ------
-mqtt_broker = 'broker.hivemq.com'
-port = 1883
-topic_sub = 'ME35-24/linuslucy' # goal is to play linus and lucy!
-isOn = False # tracking MQTT commands
-
 def connect_wifi():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -28,28 +21,44 @@ def connect_wifi():
     while not wlan.isconnected():
         time.sleep(1)
     print('----- connected to wifi -----')
-    
-def connect_mqtt(client):
-    client.connect()
-    client.subscribe(topic_sub.encode())
-    print(f'Subscribed to {topic_sub}')
-    
-def callback(topic, msg):
+        
+# ------ CONNECTING UP MQTT -------
+mqtt_broker = 'broker.hivemq.com'
+port = 1883
+topic_sub = 'ME35-24/linuslucy' # goal is to play linus and lucy!
+
+async def callback(topic, msg):
     global conductor
     
     val = msg.decode()
     print("MQTT Message received: "+val)
     
+    # Listening for start/stop commands from light sensor
     if val == 'start':
         conductor.turnOn()
         print("CALLBACK - STARTING")
+        
     elif val == 'stop':
         conductor.turnOff()
         print("CALLBACK - STOPPING")
-        
-    elif val == 'bye':
-        conductor.disconnect()
-        print("CALLBACK - DISCONNECTING")
+
+    # Listening for MQTT from the accelerometer data
+    elif val[0] == 'T':
+        await conductor.changeTempo(float(val[1:]))
+        print("CALLBACK - CHANGED TEMPO TO: "+str(val[1:]))
+
+connect_wifi()
+client = MQTTClient('AnnePico', mqtt_broker, port, keepalive=60)
+client.set_callback(lambda topic, msg: asyncio.create_task(callback(topic,msg)))
+client.connect()
+client.subscribe(topic_sub.encode())
+print(f'Subscribed to {topic_sub}')
+
+# ---- HANLER FUNCTIONS------
+def connect_mqtt(client):
+    client.connect()
+    client.subscribe(topic_sub.encode())
+    print(f'Subscribed to {topic_sub}')
     
 async def mqtt_handler(client):
     while True:
@@ -74,22 +83,13 @@ async def lightPauseButton(pin):
         light = photoRes.read_u16()
         light = round(light/65535*100,2)
         
-        if light < 10:
+        if light < 15:
             print("light covered: " + str(light) + "%")
             conductor.turnOff()
-        if light > 10 and not conductor.checkState():
+        if light > 15 and not conductor.checkState():
             conductor.turnOn()
         await asyncio.sleep(0.01)
     
-
-# ------ CONNECTING UP MQTT -------
-# After midi bluetooth keyboard is set up, start handling MQTT 
-connect_wifi()
-client = MQTTClient('ME35_linuslucy', mqtt_broker, port, keepalive=60)
-client.set_callback(callback)
-client.connect()
-client.subscribe(topic_sub.encode())
-print(f'Subscribed to {topic_sub}')
 
 # ----- RUNNING ASYNC FUNCTIONS -----
 loop = asyncio.get_event_loop()
