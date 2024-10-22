@@ -4,7 +4,7 @@ from pyscript.js_modules import teach, pose, ble_library, mqtt_library
 #ble = ble_library.newBLE()
 myClient = mqtt_library.myClient
 mqtt_connected = False
-pub_topic = 'ME35-24/linuslucy'
+pub_topic = 'ME35-24/linuslucypico'
 
 async def run_model(URL2):
     s = teach.s  # or s = pose.s
@@ -17,6 +17,7 @@ async def connect(name):
     while not myClient.connected:
         await asyncio.sleep(2)
     mqtt_connected = True
+    print("Mqtt connected")
 
 def send(message):
     print('sending ', message)
@@ -29,7 +30,6 @@ def get_predictions(num_classes):
         if divElement:
             divValue = divElement.innerHTML
             predictions.append(divValue)
-            print(divValue)
     return predictions
 
 import asyncio
@@ -42,24 +42,26 @@ lastMessage = None
 
 while True:
     if mqtt_connected:
+        print("inside eternal loop")
         predictions = get_predictions(4)   
 
         for guess in predictions:
-            if guess[:4] == 'lucy':
+            print("guess name: "+str(guess))
+            if guess[:3] == 'LUC':
                 print("READING LUCY!!!")
-                confidence = float(guess[6:])
+                confidence = float(guess[5:])
                 if confidence > threshold and not lastMessage == 'LU':
                     send('LU')
                     lastMessage = 'LU'
-            elif guess[:5] =='linus' and not lastMessage == 'LI':
+            elif guess[:3] =='LIN' and not lastMessage == 'LI':
                 print("READING LINUS!!!")
-                confidence = float(guess[7:])
+                confidence = float(guess[5:])
                 if confidence > threshold:
                     send('LI')
                     lastMessage = 'LI'
-            elif guess[:6] == 'snoopy' and not lastMessage == 'SN':
+            elif guess[:3] == 'SNO' and not lastMessage == 'SN':
                 print("READING SNOOPY!!!")
-                confidence = float(guess[8:])
+                confidence = float(guess[5:])
                 if confidence > threshold:
                     send('SN')
                     lastMessage = 'SN'
