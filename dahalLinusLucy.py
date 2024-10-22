@@ -16,12 +16,37 @@ screen.text('Hello World', 0, 0, 1) # to display text
 screen.show()
 
 # Prints a set message to the LCD onboard
-def printMessage():
+def printLinus():
     global screen
     screen.fill(0)
-    screen.text('Good Grief ._.', 0, 0, 1) # to display text
+    
+    screen.text("There's no" , 0, 0, 1) # to display text
+    screen.text("heavier burden", 0, 10, 1) 
+    screen.text("than a great", 0, 20, 1)
+    screen.text("potential!", 0, 30, 1)
+ 
     screen.show()
 
+def printLucy():
+    global screen
+    screen.fill(0)
+    
+    screen.text("If everyone" , 0, 0, 1) # to display text
+    screen.text("listened to me,", 0, 10, 1) 
+    screen.text("this would be a", 0, 20, 1)
+    screen.text("perfect world!", 0, 30, 1)
+ 
+    screen.show()
+    
+def printSnoopy():
+    global screen
+    screen.fill(0)
+    
+    screen.text("Whatever it is" , 0, 0, 1) # to display text
+    screen.text("Snoopy would ", 0, 10, 1) 
+    screen.text("say.", 0, 20, 1)
+ 
+    screen.show()
 # Prints a given message to the LCD onboard
 def printMessage(msg):
     global screen
@@ -99,8 +124,12 @@ async def callback(topic, msg):
     val = msg.decode()
     print("MQTT received: "+val)
 
-    if val == 'msg':
-        printMessage()
+    if val == 'LI':
+        printLinus()
+    elif val == 'LU':
+        printLucy()
+    elif val == 'SN':
+        printSnoopy()
     elif val == 'spin':
         await spinServo()
 
