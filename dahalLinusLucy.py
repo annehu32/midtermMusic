@@ -63,6 +63,16 @@ async def readAcc(client):
             printMessage("Acceleration exceeding threshold")
             client.publish(topic_pub, 'A')
         await asyncio.sleep(3)
+
+# helper function to spin the servo when receive mqtt request
+motor = servo.Servo(Pin(2)) 
+async def spinServo():
+    global motor
+    print("in spinServo()")
+    motor.write_angle(180) # - to turn the motor to 30 degrees
+    await asyncio.sleep(1)
+    motor.write_angle(0)
+    
     
 # ------ MQTT SET UP ------
 mqtt_broker = 'broker.hivemq.com'
@@ -82,16 +92,17 @@ def connect_wifi():
 def connect_mqtt(client):
     client.connect()
     client.subscribe(topic_sub.encode())
-    printMessage(f'Subscribed to {topic_sub}')
+    printMessage(f'Subscribed: {topic_sub}')
 
 # Handling MQTT subscriptions, need to build this out
-def callback(topic, msg):    
+async def callback(topic, msg):    
     val = msg.decode()
     print("MQTT received: "+val)
 
     if val == 'msg':
         printMessage()
-    #elif val == ''
+    elif val == 'spin':
+        await spinServo()
 
 async def mqtt_handler(client):
     while True:
@@ -111,7 +122,7 @@ async def mqtt_handler(client):
 # After midi bluetooth keyboard is set up, start handling MQTT 
 connect_wifi()
 client = MQTTClient('linusLucyDahal', mqtt_broker, port, keepalive=60)
-client.set_callback(callback)
+client.set_callback(lambda topic, msg: asyncio.create_task(callback(topic, msg)))
 client.connect()
 try:
     client.subscribe(topic_sub.encode())
