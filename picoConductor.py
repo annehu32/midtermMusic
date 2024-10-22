@@ -25,8 +25,8 @@ def connect_wifi():
 # ------ CONNECTING UP MQTT -------
 mqtt_broker = 'broker.hivemq.com'
 port = 1883
-topic_sub = 'ME35-24/linuslucy' # goal is to play linus and lucy!
-
+topic_sub = 'ME35-24/linuslucypico' 
+topic_pub = 'ME35-24/linuslucydahal'
 async def callback(topic, msg):
     global conductor
     
@@ -46,6 +46,16 @@ async def callback(topic, msg):
     elif val[0] == 'T':
         await conductor.changeTempo(float(val[1:]))
         print("CALLBACK - CHANGED TEMPO TO: "+str(val[1:]))
+        
+    elif val == 'A':
+        print("CALLBACK - ACCELEROMETER EVENT!!!")
+    
+    elif val =='LI':
+        conductor.changeVol('pp') # Linus will make it piano
+    elif val == 'LU':
+        conductor.changeVol('ff') # Lucy will make it forte
+    elif val == 'SN':
+        conductor.changeVol('f') # Snoopy will be the default volume
 
 connect_wifi()
 client = MQTTClient('AnnePico', mqtt_broker, port, keepalive=60)
@@ -77,7 +87,7 @@ async def mqtt_handler(client):
 lightSensor = Pin('GPIO26')
 
 async def lightPauseButton(pin):
-    photoRes = ADC(pin)
+    photoRes = ADC( pin)
     
     while True:
         light = photoRes.read_u16()
