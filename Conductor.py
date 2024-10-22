@@ -15,6 +15,7 @@ class Conductor():
         self.pauseIndex = 0 # For pausing function, want to know at what note were we paused
         print("----- conductor successfully instantiated------")
         self.tempo = 2.0
+        self.vol = 'f'
     
     def turnOn(self):
         self.isOn = True
@@ -29,6 +30,10 @@ class Conductor():
         print("-------- TEMPO CHANGED!!!!! -------")
         print(" ------- " + str(self.tempo)+ " ----------")
         await asyncio.sleep(0.01)
+    
+    def changeVol(self, val):
+        #val must be input as one of the corresponding velocity options
+        self.vol = val
     
     def getTempo(self):
         return self.tempo
@@ -63,11 +68,10 @@ class Conductor():
         tsL =  0x80 | (timestamp_ms & 0b1111111)
 
         c =  cmd | channel     
-        payload = bytes([tsM,tsL,c,note,velocity['f']])
+        payload = bytes([tsM,tsL,c,note,velocity[self.vol]])
         from song import melody
      
         while True:
-            print("************ outside song loop, tempo is: "+str(self.tempo))
             # For each note in song, make sure light uncovered, then play
             for i in range(0, len(melody)):
                 temp = self.getTempo()
@@ -81,7 +85,7 @@ class Conductor():
                     await asyncio.sleep(0.01)
                 
                 # When isOn, will play the note
-                payload = bytes([tsM,tsL,c,note[0],velocity['f']])
+                payload = bytes([tsM,tsL,c,note[0],velocity[self.vol]])
                 self.midi.send(payload)
                 
                 await asyncio.sleep(note[1]/(temp*100))
