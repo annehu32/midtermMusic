@@ -1,7 +1,7 @@
 #Code to run on PC for Teachable Machine Joystick
 from pyscript.js_modules import teach, pose, ble_library, mqtt_library
 
-myClient = mqtt_library.myClient
+myClient = mqtt_library.myClient("broker.hivemq.com", 8884)
 mqtt_connected = False
 pub_topic = 'ME35-24/linuslucypico'
 
