@@ -40,7 +40,7 @@ class Conductor():
         mqtt_broker = 'broker.hivemq.com'
         port = 1883
 
-        self.client = MQTTClient('AnnePico', mqtt_broker, port, keepalive=60)
+        self.client = MQTTClient('ConductorObject', mqtt_broker, port, keepalive=60)
         self.client.connect()
         print("Conductor object has created a client!!!")
     
@@ -110,6 +110,11 @@ class Conductor():
         from song import melody
      
         while True:
+            # At beginning of song, have servo move
+            msg = 'spin'
+            self.client.publish(self.topic_pub.encode(), msg.encode())
+            print("Sent spin message to Dahal Board")
+
             # For each note in song, make sure light uncovered, then play
             for i in range(0, len(melody)):
                 temp = self.getTempo()
