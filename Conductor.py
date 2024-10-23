@@ -18,8 +18,33 @@ class Conductor():
         self.tempo = 1.5
         self.vol = 'f'
         
+        self.client = None
+        self.topic_pub = 'ME35-24/linuslucydahal'
+        
         print("----- conductor successfully instantiated------")
+    
+    # ------ MQTT SET UP ------
+    def connect_wifi(self):
+        from secrets import mysecret, key
+        
+        wlan = network.WLAN(network.STA_IF)
+        wlan.active(True)
+        wlan.connect(mysecret, key)
+        while not wlan.isconnected():
+            time.sleep(1)
+        print('----- Conductor object is connected to wifi -----')
+        
+    def createClient(self):
+        self.connect_wifi()
+        
+        mqtt_broker = 'broker.hivemq.com'
+        port = 1883
 
+        self.client = MQTTClient('AnnePico', mqtt_broker, port, keepalive=60)
+        self.client.connect()
+        print("Conductor object has created a client!!!")
+    
+    # ------- HELPER FUNCTIONS --------
     async def turnMasterOn(self):
         self.masterOn  = True
         await asyncio.sleep(0.01)
