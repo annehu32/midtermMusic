@@ -12,6 +12,7 @@ from secrets import mysecret, key
 midi = Yell('frog', verbose = True, type = 'midi')
 conductor = Conductor(midi)
 conductor.connect()
+conductor.createClient()
 
 # ------ MQTT SET UP ------
 def connect_wifi():
