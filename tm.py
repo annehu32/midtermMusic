@@ -1,7 +1,6 @@
 #Code to run on PC for Teachable Machine Joystick
 from pyscript.js_modules import teach, pose, ble_library, mqtt_library
 
-#ble = ble_library.newBLE()
 myClient = mqtt_library.myClient
 mqtt_connected = False
 pub_topic = 'ME35-24/linuslucypico'
@@ -33,7 +32,7 @@ def get_predictions(num_classes):
     return predictions
 
 import asyncio
-await run_model("https://teachablemachine.withgoogle.com/models/t58WGMjvv/") #Change to your model link
+await run_model("https://teachablemachine.withgoogle.com/models/t58WGMjvv/")
 await connect('Anne')
 
 # Handling message sending
@@ -42,7 +41,6 @@ lastMessage = None
 
 while True:
     if mqtt_connected:
-        print("inside eternal loop")
         predictions = get_predictions(4)   
 
         for guess in predictions:
