@@ -40,7 +40,7 @@ class Conductor():
         mqtt_broker = 'broker.hivemq.com'
         port = 1883
 
-        self.client = MQTTClient('ConductorObject', mqtt_broker, port, keepalive=60)
+        self.client = MQTTClient('ConductorObject', mqtt_broker, port, keepalive=120)
         self.client.connect()
         print("Conductor object has created a client!!!")
     
@@ -112,8 +112,14 @@ class Conductor():
         while True:
             # At beginning of song, have servo move
             msg = 'spin'
-            self.client.publish(self.topic_pub.encode(), msg.encode())
-            print("Sent spin message to Dahal Board")
+            try:
+                self.client.publish(self.topic_pub.encode(), msg.encode())
+                print("Sent spin message to Dahal Board")
+            except Exception as e:
+                self.client.connect()
+                print("Reconnected, trying again...")
+                self.client.publish(self.topic_pub.encode(), msg.encode())
+
 
             # For each note in song, make sure light uncovered, then play
             for i in range(0, len(melody)):
