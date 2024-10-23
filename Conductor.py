@@ -3,107 +3,111 @@ import network
 import uasyncio as asyncio
 from BLE_CEEO import Yell
 from mqtt import MQTTClient
-from machine import ADC, Pin
-
-from Conductor import Conductor # Class to control the tune
+from machine import Pin, PWM # not in use yet...
 from secrets import mysecret, key
 
-# ------ CREATING AND CONNECTING MIDI CONDUCTOR ------
-midi = Yell('frog', verbose = True, type = 'midi')
-conductor = Conductor(midi)
-conductor.connect()
+class Conductor():
 
-# ------ MQTT SET UP ------
-def connect_wifi():
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    wlan.connect(mysecret, key)
-    while not wlan.isconnected():
-        time.sleep(1)
-    print('----- connected to wifi -----')
+    # Initializer takes midi object
+    def __init__(self, midiBluetooth):
+        self.midi = midiBluetooth
         
-# ------ CONNECTING UP MQTT -------
-mqtt_broker = 'broker.hivemq.com'
-port = 1883
-topic_sub = 'ME35-24/linuslucypico' 
-topic_pub = 'ME35-24/linuslucydahal'
-async def callback(topic, msg):
-    global conductor
-    
-    val = msg.decode()
-    print("MQTT Message received: "+val)
-    
-    # Listening for start/stop commands from light sensor
-    if val == 'start':
-        await conductor.turnMasterOn()
-        print("CALLBACK - STARTING")
+        self.masterOn = False
+        self.isOn = False
         
-    elif val == 'stop':
-        await conductor.turnMasterOff()
-        print("CALLBACK - STOPPING")
-
-    # Listening for MQTT from the accelerometer data
-    elif val[0] == 'T':
-        await conductor.changeTempo(float(val[1:]))
-        print("CALLBACK - CHANGED TEMPO TO: "+str(val[1:]))
+        self.tempo = 1.5
+        self.vol = 'f'
         
-    elif val == 'A':
-        print("CALLBACK - ACCELEROMETER EVENT!!!")
-    
-    elif val =='LI':
-        conductor.changeVol('p') # Linus will make it piano
-    elif val == 'LU':
-        conductor.changeVol('ff') # Lucy will make it forte
-    elif val == 'SN':
-        conductor.changeVol('f') # Snoopy will be the default volume
+        print("----- conductor successfully instantiated------")
 
-connect_wifi()
-client = MQTTClient('AnnePico', mqtt_broker, port, keepalive=60)
-client.set_callback(lambda topic, msg: asyncio.create_task(callback(topic,msg)))
-client.connect()
-client.subscribe(topic_sub.encode())
-print(f'Subscribed to {topic_sub}')
-
-# ---- HANLER FUNCTIONS------
-def connect_mqtt(client):
-    client.connect()
-    client.subscribe(topic_sub.encode())
-    print(f'Subscribed to {topic_sub}')
-    
-async def mqtt_handler(client):
-    while True:
-        if network.WLAN(network.STA_IF).isconnected():
-            try:
-                client.check_msg()
-            except Exception as e:
-                print('MQTT callback failed')
-                connect_mqtt(client)
-        else:
-            print('Wifi disconnected, trying to connect...')
-            connect_wifi()
+    async def turnMasterOn(self):
+        self.masterOn  = True
         await asyncio.sleep(0.01)
-
-# ---- PHOTORESISTOR PAUSE FUNCTION ------
-lightSensor = Pin('GPIO26')
-
-async def lightPauseButton(pin):
-    photoRes = ADC( pin)
-    
-    while True:
-        light = photoRes.read_u16()
-        light = round(light/65535*100,2)
+        print(" ~~~~~~ from conductor: masterOn() ~~~~~")
         
-        if light < 15:
-            print("light covered: " + str(light) + "%")
-            conductor.turnOff()
-        if light > 15 and not conductor.checkState():
-            conductor.turnOn()
+    async def turnMasterOff(self):
+        self.masterOn = False
+        await asyncio.sleep(0.01)
+        print("~~~~~~ from conductor: masterOff() ~~~~~")
+        
+    def turnOn(self):
+        self.isOn = True
+        print(" ~~~~~~ from conductor: turnOn() ~~~~~")
+        
+    def turnOff(self):
+        self.isOn = False
+        print(" ~~~~~~ from conductor: turnOff() ~~~~~")
+    
+    async def changeTempo(self, val):
+        self.tempo = float(val)
+        print("-------- TEMPO CHANGED!!!!! -------")
+        print(" ------- " + str(self.tempo)+ " ----------")
         await asyncio.sleep(0.01)
     
+    def changeVol(self, val):
+        #val must be input as one of the corresponding velocity options
+        self.vol = val
+    
+    def getTempo(self):
+        return self.tempo
 
-# ----- RUNNING ASYNC FUNCTIONS -----
-loop = asyncio.get_event_loop()
-loop.create_task(mqtt_handler(client))
-loop.create_task(conductor.handler())
-loop.create_task(lightPauseButton(lightSensor))
-loop.run_forever()
+    def connect(self):
+        self.midi.connect_up()
+        
+    def disconect(self):
+        self.midi.disconnect()
+    
+    def checkState(self):
+        return self.isOn
+        
+    async def handler(self):
+        # ----- MIDI SETUP ------
+        NoteOn = 0x90
+        NoteOff = 0x80
+        StopNotes = 123
+        SetInstroment = 0xC0
+        Reset = 0xFF
+
+        velocity = {'off':0, 'pppp':8,'ppp':20,'pp':31,'p':42,'mp':53,
+            'mf':64,'f':80,'ff':96,'fff':112,'ffff':127}
+        
+        channel = 0
+        note = 55
+        cmd = NoteOn
+        
+        channel = 0x0F & channel
+        timestamp_ms = time.ticks_ms()
+        tsM = (timestamp_ms >> 7 & 0b111111) | 0x80
+        tsL =  0x80 | (timestamp_ms & 0b1111111)
+
+        c =  cmd | channel     
+        payload = bytes([tsM,tsL,c,note,velocity[self.vol]])
+        from song import melody
+     
+        while True:
+            # For each note in song, make sure light uncovered, then play
+            for i in range(0, len(melody)):
+                temp = self.getTempo()
+                print("----- tempo is: "+str(temp)+" --------")
+
+                print("----- Note index: "+str(i)+" --------")
+                note = melody[i]
+                
+                while not self.masterOn:
+                    print("------ Master key is off --------")
+                    await asyncio.sleep(0.01)
+                
+                while not self.isOn:
+                    print(" ------- Waiting for go on note #: "+str(i)+" --------")
+                    await asyncio.sleep(0.01)
+                
+                # When isOn, will play the note
+                payload = bytes([tsM,tsL,c,note[0],velocity[self.vol]])
+                self.midi.send(payload)
+                
+                await asyncio.sleep(note[1]/(temp*100))
+                
+                payloadOff = bytes([tsM,tsL,c,note[0],0])
+                self.midi.send(payloadOff)
+                    
+            await asyncio.sleep(0.01)
