@@ -35,11 +35,11 @@ async def callback(topic, msg):
     
     # Listening for start/stop commands from light sensor
     if val == 'start':
-        conductor.turnOn()
+        await conductor.turnMasterOn()
         print("CALLBACK - STARTING")
         
     elif val == 'stop':
-        conductor.turnOff()
+        await conductor.turnMasterOff()
         print("CALLBACK - STOPPING")
 
     # Listening for MQTT from the accelerometer data
@@ -51,7 +51,7 @@ async def callback(topic, msg):
         print("CALLBACK - ACCELEROMETER EVENT!!!")
     
     elif val =='LI':
-        conductor.changeVol('pp') # Linus will make it piano
+        conductor.changeVol('p') # Linus will make it piano
     elif val == 'LU':
         conductor.changeVol('ff') # Lucy will make it forte
     elif val == 'SN':
